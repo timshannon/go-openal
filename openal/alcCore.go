@@ -19,9 +19,9 @@
 package openal
 
 //#cgo linux LDFLAGS: -lopenal
+//#cgo darwin LDFLAGS: -framework OpenAL
 //#include <stdlib.h>
-//#include <AL/al.h>
-//#include <AL/alc.h>
+//#include "local.h"
 /*
 ALCdevice *walcOpenDevice(const char *devicename) {
 	return alcOpenDevice(devicename);

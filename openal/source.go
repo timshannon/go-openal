@@ -6,7 +6,8 @@ package openal
 
 /*
 #include <stdlib.h>
-#include <AL/al.h>
+#cgo darwin LDFLAGS: -framework OpenAL
+#include "local.h"
 #include "wrapper.h"
 */
 import "C"

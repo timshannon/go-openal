@@ -91,8 +91,9 @@ package openal
 
 /*
 #cgo linux LDFLAGS: -lopenal
+#cgo darwin LDFLAGS: -framework OpenAL
 #include <stdlib.h>
-#include <AL/al.h>
+#include "local.h"
 #include "wrapper.h"
 */
 import "C"
