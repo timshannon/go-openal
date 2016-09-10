@@ -78,7 +78,7 @@ const (
 
 type Device struct {
 	// Use uintptr instead of *C.ALCdevice.
-	// On Mac OS X, this value is 0x18 and might cause crash.
+	// On Mac OS X, this value is 0x18 and might cause crash with a raw pointer.
 	handle uintptr
 }
 
@@ -217,7 +217,7 @@ func (self *CaptureDevice) CapturedSamples() (size uint32) {
 // be active in a given process.
 type Context struct {
 	// Use uintptr instead of *C.ALCcontext
-	// On Mac OS X, this value is 0x19 and might cause crash.
+	// On Mac OS X, this value is 0x19 and might cause crash with a raw pointer.
 	handle uintptr
 }
 
