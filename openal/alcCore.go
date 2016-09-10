@@ -77,11 +77,13 @@ const (
 )
 
 type Device struct {
-	handle *C.ALCdevice
+	// Use uintptr instead of *C.ALCdevice.
+	// On Mac OS X, this value is 0x18 and might cause crash with a raw pointer.
+	handle uintptr
 }
 
 func (self *Device) getError() uint32 {
-	return uint32(C.alcGetError(self.handle))
+	return uint32(C.alcGetError(unsafe.Pointer(self.handle)))
 }
 
 // Err() returns the most recent error generated
@@ -111,28 +113,28 @@ func OpenDevice(name string) *Device {
 	p := C.CString(name)
 	h := C.walcOpenDevice(p)
 	C.free(unsafe.Pointer(p))
-	return &Device{h}
+	return &Device{uintptr((unsafe.Pointer)(h))}
 }
 
 func (self *Device) CloseDevice() bool {
 	//TODO: really a method? or not?
-	return C.alcCloseDevice(self.handle) != 0
+	return C.alcCloseDevice(unsafe.Pointer(self.handle)) != 0
 }
 
 func (self *Device) CreateContext() *Context {
 	// TODO: really a method?
 	// TODO: attrlist support
-	return &Context{C.alcCreateContext(self.handle, nil)}
+	return &Context{uintptr(unsafe.Pointer(C.alcCreateContext(unsafe.Pointer(self.handle), nil)))}
 }
 
 func (self *Device) GetIntegerv(param uint32, size uint32) (result []int32) {
 	result = make([]int32, size)
-	C.walcGetIntegerv(self.handle, C.ALCenum(param), C.ALCsizei(size), unsafe.Pointer(&result[0]))
+	C.walcGetIntegerv(unsafe.Pointer(self.handle), C.ALCenum(param), C.ALCsizei(size), unsafe.Pointer(&result[0]))
 	return
 }
 
 func (self *Device) GetInteger(param uint32) int32 {
-	return int32(C.walcGetInteger(self.handle, C.ALCenum(param)))
+	return int32(C.walcGetInteger(unsafe.Pointer(self.handle), C.ALCenum(param)))
 }
 
 type CaptureDevice struct {
@@ -146,14 +148,14 @@ func CaptureOpenDevice(name string, freq uint32, format Format, size uint32) *Ca
 	p := C.CString(name)
 	h := C.walcCaptureOpenDevice(p, C.ALCuint(freq), C.ALCenum(format), C.ALCsizei(size))
 	C.free(unsafe.Pointer(p))
-	return &CaptureDevice{Device{h}, uint32(format.SampleSize())}
+	return &CaptureDevice{Device{uintptr(unsafe.Pointer(h))}, uint32(format.SampleSize())}
 }
 
 // XXX: Override Device.CloseDevice to make sure the correct
 // C function is called even if someone decides to use this
 // behind an interface.
 func (self *CaptureDevice) CloseDevice() bool {
-	return C.alcCaptureCloseDevice(self.handle) != 0
+	return C.alcCaptureCloseDevice(unsafe.Pointer(self.handle)) != 0
 }
 
 func (self *CaptureDevice) CaptureCloseDevice() bool {
@@ -161,19 +163,19 @@ func (self *CaptureDevice) CaptureCloseDevice() bool {
 }
 
 func (self *CaptureDevice) CaptureStart() {
-	C.alcCaptureStart(self.handle)
+	C.alcCaptureStart(unsafe.Pointer(self.handle))
 }
 
 func (self *CaptureDevice) CaptureStop() {
-	C.alcCaptureStop(self.handle)
+	C.alcCaptureStop(unsafe.Pointer(self.handle))
 }
 
 func (self *CaptureDevice) CaptureTo(data []byte) {
-	C.alcCaptureSamples(self.handle, unsafe.Pointer(&data[0]), C.ALCsizei(uint32(len(data))/self.sampleSize))
+	C.alcCaptureSamples(unsafe.Pointer(self.handle), unsafe.Pointer(&data[0]), C.ALCsizei(uint32(len(data))/self.sampleSize))
 }
 
 func (self *CaptureDevice) CaptureToInt16(data []int16) {
-	C.alcCaptureSamples(self.handle, unsafe.Pointer(&data[0]), C.ALCsizei(uint32(len(data))*2/self.sampleSize))
+	C.alcCaptureSamples(unsafe.Pointer(self.handle), unsafe.Pointer(&data[0]), C.ALCsizei(uint32(len(data))*2/self.sampleSize))
 }
 
 func (self *CaptureDevice) CaptureMono8To(data []byte) {
@@ -185,11 +187,11 @@ func (self *CaptureDevice) CaptureMono16To(data []int16) {
 }
 
 func (self *CaptureDevice) CaptureStereo8To(data [][2]byte) {
-	C.alcCaptureSamples(self.handle, unsafe.Pointer(&data[0]), C.ALCsizei(uint32(len(data))*2/self.sampleSize))
+	C.alcCaptureSamples(unsafe.Pointer(self.handle), unsafe.Pointer(&data[0]), C.ALCsizei(uint32(len(data))*2/self.sampleSize))
 }
 
 func (self *CaptureDevice) CaptureStereo16To(data [][2]int16) {
-	C.alcCaptureSamples(self.handle, unsafe.Pointer(&data[0]), C.ALCsizei(uint32(len(data))*4/self.sampleSize))
+	C.alcCaptureSamples(unsafe.Pointer(self.handle), unsafe.Pointer(&data[0]), C.ALCsizei(uint32(len(data))*4/self.sampleSize))
 }
 
 func (self *CaptureDevice) CaptureSamples(size uint32) (data []byte) {
@@ -214,7 +216,9 @@ func (self *CaptureDevice) CapturedSamples() (size uint32) {
 // of the OpenAL state machine. Only one context can
 // be active in a given process.
 type Context struct {
-	handle *C.ALCcontext
+	// Use uintptr instead of *C.ALCcontext
+	// On Mac OS X, this value is 0x19 and might cause crash with a raw pointer.
+	handle uintptr
 }
 
 // A context that doesn't exist, useful for certain
@@ -224,31 +228,31 @@ var NullContext Context
 
 // Renamed, was MakeContextCurrent.
 func (self *Context) Activate() bool {
-	return C.alcMakeContextCurrent(self.handle) != alFalse
+	return C.alcMakeContextCurrent(unsafe.Pointer(self.handle)) != alFalse
 }
 
 // Renamed, was ProcessContext.
 func (self *Context) Process() {
-	C.alcProcessContext(self.handle)
+	C.alcProcessContext(unsafe.Pointer(self.handle))
 }
 
 // Renamed, was SuspendContext.
 func (self *Context) Suspend() {
-	C.alcSuspendContext(self.handle)
+	C.alcSuspendContext(unsafe.Pointer(self.handle))
 }
 
 // Renamed, was DestroyContext.
 func (self *Context) Destroy() {
-	C.alcDestroyContext(self.handle)
-	self.handle = nil
+	C.alcDestroyContext(unsafe.Pointer(self.handle))
+	self.handle = uintptr(unsafe.Pointer(nil))
 }
 
 // Renamed, was GetContextsDevice.
 func (self *Context) GetDevice() *Device {
-	return &Device{C.alcGetContextsDevice(self.handle)}
+	return &Device{uintptr(unsafe.Pointer(C.alcGetContextsDevice(unsafe.Pointer(self.handle))))}
 }
 
 // Renamed, was GetCurrentContext.
 func CurrentContext() *Context {
-	return &Context{C.alcGetCurrentContext()}
+	return &Context{uintptr(unsafe.Pointer(C.alcGetCurrentContext()))}
 }
