@@ -12,3 +12,6 @@ To install simply install the openal and alc libs appropriately for
 your platform, or build them from scratch, then run
 
 go get -u github.com/timshannon/go-openal/
+
+
+*Note, as of commit 0a4cd0b this library is no longer compatible with Go 1.3.3 and older.*
