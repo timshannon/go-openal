@@ -83,7 +83,7 @@ type Device struct {
 }
 
 func (self *Device) getError() uint32 {
-	return uint32(C.alcGetError(unsafe.Pointer(self.handle)))
+	return uint32(C.alcGetError((*C.struct_ALCdevice_struct)(unsafe.Pointer(self.handle))))
 }
 
 // Err() returns the most recent error generated
@@ -116,25 +116,30 @@ func OpenDevice(name string) *Device {
 	return &Device{uintptr((unsafe.Pointer)(h))}
 }
 
+func (self *Device) cHandle() *C.struct_ALCdevice_struct {
+	return (*C.struct_ALCdevice_struct)(unsafe.Pointer(self.handle))
+}
+
 func (self *Device) CloseDevice() bool {
 	//TODO: really a method? or not?
-	return C.alcCloseDevice(unsafe.Pointer(self.handle)) != 0
+	return C.alcCloseDevice(self.cHandle()) != 0
 }
 
 func (self *Device) CreateContext() *Context {
 	// TODO: really a method?
 	// TODO: attrlist support
-	return &Context{uintptr(unsafe.Pointer(C.alcCreateContext(unsafe.Pointer(self.handle), nil)))}
+	c := C.alcCreateContext(self.cHandle(), nil)
+	return &Context{uintptr(unsafe.Pointer(c))}
 }
 
 func (self *Device) GetIntegerv(param uint32, size uint32) (result []int32) {
 	result = make([]int32, size)
-	C.walcGetIntegerv(unsafe.Pointer(self.handle), C.ALCenum(param), C.ALCsizei(size), unsafe.Pointer(&result[0]))
+	C.walcGetIntegerv(self.cHandle(), C.ALCenum(param), C.ALCsizei(size), unsafe.Pointer(&result[0]))
 	return
 }
 
 func (self *Device) GetInteger(param uint32) int32 {
-	return int32(C.walcGetInteger(unsafe.Pointer(self.handle), C.ALCenum(param)))
+	return int32(C.walcGetInteger(self.cHandle(), C.ALCenum(param)))
 }
 
 type CaptureDevice struct {
@@ -155,7 +160,7 @@ func CaptureOpenDevice(name string, freq uint32, format Format, size uint32) *Ca
 // C function is called even if someone decides to use this
 // behind an interface.
 func (self *CaptureDevice) CloseDevice() bool {
-	return C.alcCaptureCloseDevice(unsafe.Pointer(self.handle)) != 0
+	return C.alcCaptureCloseDevice(self.cHandle()) != 0
 }
 
 func (self *CaptureDevice) CaptureCloseDevice() bool {
@@ -163,19 +168,19 @@ func (self *CaptureDevice) CaptureCloseDevice() bool {
 }
 
 func (self *CaptureDevice) CaptureStart() {
-	C.alcCaptureStart(unsafe.Pointer(self.handle))
+	C.alcCaptureStart(self.cHandle())
 }
 
 func (self *CaptureDevice) CaptureStop() {
-	C.alcCaptureStop(unsafe.Pointer(self.handle))
+	C.alcCaptureStop(self.cHandle())
 }
 
 func (self *CaptureDevice) CaptureTo(data []byte) {
-	C.alcCaptureSamples(unsafe.Pointer(self.handle), unsafe.Pointer(&data[0]), C.ALCsizei(uint32(len(data))/self.sampleSize))
+	C.alcCaptureSamples(self.cHandle(), unsafe.Pointer(&data[0]), C.ALCsizei(uint32(len(data))/self.sampleSize))
 }
 
 func (self *CaptureDevice) CaptureToInt16(data []int16) {
-	C.alcCaptureSamples(unsafe.Pointer(self.handle), unsafe.Pointer(&data[0]), C.ALCsizei(uint32(len(data))*2/self.sampleSize))
+	C.alcCaptureSamples(self.cHandle(), unsafe.Pointer(&data[0]), C.ALCsizei(uint32(len(data))*2/self.sampleSize))
 }
 
 func (self *CaptureDevice) CaptureMono8To(data []byte) {
@@ -187,11 +192,11 @@ func (self *CaptureDevice) CaptureMono16To(data []int16) {
 }
 
 func (self *CaptureDevice) CaptureStereo8To(data [][2]byte) {
-	C.alcCaptureSamples(unsafe.Pointer(self.handle), unsafe.Pointer(&data[0]), C.ALCsizei(uint32(len(data))*2/self.sampleSize))
+	C.alcCaptureSamples(self.cHandle(), unsafe.Pointer(&data[0]), C.ALCsizei(uint32(len(data))*2/self.sampleSize))
 }
 
 func (self *CaptureDevice) CaptureStereo16To(data [][2]int16) {
-	C.alcCaptureSamples(unsafe.Pointer(self.handle), unsafe.Pointer(&data[0]), C.ALCsizei(uint32(len(data))*4/self.sampleSize))
+	C.alcCaptureSamples(self.cHandle(), unsafe.Pointer(&data[0]), C.ALCsizei(uint32(len(data))*4/self.sampleSize))
 }
 
 func (self *CaptureDevice) CaptureSamples(size uint32) (data []byte) {
@@ -226,30 +231,34 @@ type Context struct {
 // details).
 var NullContext Context
 
+func (self *Context) cHandle() *C.struct_ALCcontext_struct {
+	return (*C.struct_ALCcontext_struct)(unsafe.Pointer(self.handle))
+}
+
 // Renamed, was MakeContextCurrent.
 func (self *Context) Activate() bool {
-	return C.alcMakeContextCurrent(unsafe.Pointer(self.handle)) != alFalse
+	return C.alcMakeContextCurrent(self.cHandle()) != alFalse
 }
 
 // Renamed, was ProcessContext.
 func (self *Context) Process() {
-	C.alcProcessContext(unsafe.Pointer(self.handle))
+	C.alcProcessContext(self.cHandle())
 }
 
 // Renamed, was SuspendContext.
 func (self *Context) Suspend() {
-	C.alcSuspendContext(unsafe.Pointer(self.handle))
+	C.alcSuspendContext(self.cHandle())
 }
 
 // Renamed, was DestroyContext.
 func (self *Context) Destroy() {
-	C.alcDestroyContext(unsafe.Pointer(self.handle))
+	C.alcDestroyContext(self.cHandle())
 	self.handle = uintptr(unsafe.Pointer(nil))
 }
 
 // Renamed, was GetContextsDevice.
 func (self *Context) GetDevice() *Device {
-	return &Device{uintptr(unsafe.Pointer(C.alcGetContextsDevice(unsafe.Pointer(self.handle))))}
+	return &Device{uintptr(unsafe.Pointer(C.alcGetContextsDevice(self.cHandle())))}
 }
 
 // Renamed, was GetCurrentContext.
